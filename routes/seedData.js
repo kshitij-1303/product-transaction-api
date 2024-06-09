@@ -16,12 +16,22 @@ router.get("/data", async (req, res) => {
     })
     .then((products) => {
       // 2. Save fetched data in mongo database
+      let failureCount = 0;
       for (const product of products) {
-        const item = new Product(product);
-        item.save();
+        try {
+          const item = new Product(product);
+          item.save();
+        } catch (error) {
+          // Increment failure count if data is not inserted
+          failureCount++;
+        }
       }
 
-      res.send({ message: "Database seed complete" });
+      res.send({
+        message: "Database seed complete",
+        success: products.length - failureCount,
+        failure: failureCount,
+      });
     });
 });
 
