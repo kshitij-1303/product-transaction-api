@@ -1,12 +1,10 @@
 const express = require("express");
 const axios = require("axios");
-const Product = require("../models/productModel");
+const ProductTransaction = require("../models/ProductTransaction");
 
 const router = express.Router();
 
-router.use(express.json());
-
-router.get("/data", async (req, res) => {
+router.get("/seed-data", async (req, res) => {
   // 1. Fetch data from https://s3.amazonaws.com/roxiler.com/product_transaction.json
 
   axios
@@ -19,7 +17,7 @@ router.get("/data", async (req, res) => {
       let failureCount = 0;
       for (const product of products) {
         try {
-          const item = new Product(product);
+          const item = new ProductTransaction(product);
           item.save();
         } catch (error) {
           // Increment failure count if data is not inserted
