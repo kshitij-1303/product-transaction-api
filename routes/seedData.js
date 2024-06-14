@@ -15,6 +15,7 @@ router.get("/seed-data", async (req, res) => {
     .then((products) => {
       // 2. Save fetched data in mongo database
       let failureCount = 0;
+      ProductTransaction.delelteMany({});
       for (const product of products) {
         try {
           const item = new ProductTransaction(product);
