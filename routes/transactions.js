@@ -2,6 +2,12 @@ const express = require("express");
 
 const router = express.Router();
 const ProductTransaction = require("../models/ProductTransaction");
+const rangeCount = require("../utils/rangeCount");
+const category = require("../utils/category");
+const chart = require("../utils/chart");
+const statistics = require("../utils/statistics");
+
+// List all transactions, which also supports search and pagination
 
 router.get("/transaction", async (req, res) => {
   if (!req.body) {
@@ -33,6 +39,8 @@ router.get("/transaction", async (req, res) => {
   }
 });
 
+//  show statistics of a particular month, which also gives sold and unsold product count
+
 router.get("/statistics/:month", async (req, res) => {
   const { month } = req.params;
   const products = await ProductTransaction.find({});
@@ -41,7 +49,7 @@ router.get("/statistics/:month", async (req, res) => {
   let countOfUnsoldItems = 0;
 
   let monthlyTransactions = [];
-  products.map(async (product) => {
+  products.map((product) => {
     const transactionMonth = new Date(product.dateOfSale).getMonth().toString();
 
     if (month === transactionMonth) {
@@ -53,11 +61,72 @@ router.get("/statistics/:month", async (req, res) => {
   res.send({ monthlyTransactions, countOfSoldItems, countOfUnsoldItems });
 });
 
-// router.get("/transaction/:id", async (req, res) => {
-//   const { id } = req.params;
-//   const transaction = await ProductTransaction.findOne({ id: id });
-//   console.log(date);
-//   res.send(transaction);
-// });
+// For bar chart
+
+router.get("/chart/:month", async (req, res) => {
+  const { month } = req.params;
+  const products = await ProductTransaction.find({});
+
+  const range = new Array(10).fill(0);
+
+  products.map((product) => {
+    const transactionMonth = new Date(product.dateOfSale).getMonth().toString();
+
+    if (month === transactionMonth) {
+      rangeCount(product.price, range);
+    }
+  });
+
+  const response = {};
+  range.map((ele, index) => {
+    const lowerRange = index * 100 + 1;
+    let key = `${lowerRange}-${lowerRange + 99}`;
+    if (index == 9) {
+      key = `${lowerRange} and above`;
+    }
+    console.log(key);
+
+    response[key] = ele;
+  });
+
+  res.send({ response });
+});
+
+// Find unique categories and number of items  from that category
+
+router.get("/category/:month", async (req, res) => {
+  const { month } = req.params;
+  const products = await ProductTransaction.find({});
+  const distinctCategory = {};
+
+  products.forEach((product) => {
+    const transactionMonth = new Date(product.dateOfSale).getMonth().toString();
+
+    if (month === transactionMonth) {
+      if (product.category in distinctCategory) {
+        distinctCategory[product.category]++;
+      } else {
+        distinctCategory[product.category] = 1;
+      }
+    }
+  });
+
+  res.send(distinctCategory);
+});
+
+// To get data of all the above mentioned apis
+
+router.get("/all/:month", async (req, res) => {
+  const params = req.params;
+  const month = params.month;
+  console.log(params, month);
+  const statisticsVal = await statistics(month);
+  const categoryVal = await category(month);
+  console.log(categoryVal);
+  const chartVal = await chart(month);
+  console.log(chartVal);
+
+  res.send({ statisticsVal, categoryVal, chartVal });
+});
 
 module.exports = router;
